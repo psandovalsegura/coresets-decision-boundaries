@@ -24,7 +24,7 @@ source ${WORK_DIR}/tmp-env/bin/activate
 pip3 install --upgrade pip
 pip3 install -r ${SCRIPT_DIR}/requirements.txt
 
-for frac in {0.1,0.3,0.5,0.7,0.9}
+for frac in {0.001,0.01,0.1}
 do
     python main.py --runs 5 --split_fraction $frac --workers 4 --batch_size 512 --random_split --no_progress_bar --no_checkpoint_save --no_download_data --cifar_dir /vulcanscratch/psando/cifar-10/
 done
