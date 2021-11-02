@@ -59,8 +59,8 @@ if args.random_split:
     split_size = int(args.split_fraction * len(trainset))
     train_idx = torch.randperm(len(trainset))[:split_size]
     train_idx = train_idx.tolist()
-    train_set = torch.utils.data.Subset(trainset, train_idx)
-    print(f'==> Using a random training set split of size {len(train_set)}..')
+    trainset = torch.utils.data.Subset(trainset, train_idx)
+    print(f'==> Using a random training set split of size {len(trainset)}..')
 
 trainloader = torch.utils.data.DataLoader(
     trainset, batch_size=args.batch_size, shuffle=True, num_workers=args.workers)
