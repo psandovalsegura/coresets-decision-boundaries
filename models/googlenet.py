@@ -79,7 +79,7 @@ class GoogLeNet(nn.Module):
         self.avgpool = nn.AvgPool2d(8, stride=1)
         self.linear = nn.Linear(1024, 10)
 
-    def forward(self, x):
+    def forward(self, x, last_layer=False):
         out = self.pre_layers(x)
         out = self.a3(out)
         out = self.b3(out)
@@ -94,6 +94,8 @@ class GoogLeNet(nn.Module):
         out = self.b5(out)
         out = self.avgpool(out)
         out = out.view(out.size(0), -1)
+        if last_layer:
+            return out
         out = self.linear(out)
         return out
 

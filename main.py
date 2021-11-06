@@ -13,14 +13,17 @@ import argparse
 import numpy as np
 
 from models import *
+from utils import model_picker
 
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
 parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
+parser.add_argument('--model_name', default='googlenet', type=str, help='Model name')
 parser.add_argument('--resume', '-r', action='store_true',
                     help='resume from checkpoint')
 parser.add_argument('--cifar_dir', default='./data',
                     help='location of the cifar-10 dataset')
+parser.add_argument('--cifar_ckpt_dir', default='./checkpoint',)
 parser.add_argument('--epochs', default=100, type=int, help='number of epochs')
 parser.add_argument('--workers', default=1, type=int, help='number of data loading workers')
 parser.add_argument('--batch_size', default=128, type=int, help='input batch size')
@@ -75,21 +78,7 @@ classes = ('plane', 'car', 'bird', 'cat', 'deer',
 
 # Model
 print('==> Building model..')
-# net = VGG('VGG19')
-net = ResNet18()
-# net = PreActResNet18()
-# net = GoogLeNet()
-# net = DenseNet121()
-# net = ResNeXt29_2x64d()
-# net = MobileNet()
-# net = MobileNetV2()
-# net = DPN92()
-# net = ShuffleNetG2()
-# net = SENet18()
-# net = ShuffleNetV2(1)
-# net = EfficientNetB0()
-# net = RegNetX_200MF()
-# net = SimpleDLA()
+net = model_picker(args.model_name)
 net = net.to(device)
 if device == 'cuda':
     net = torch.nn.DataParallel(net)
@@ -164,12 +153,15 @@ def test(epoch):
         print('Saving checkpoint..')
         state = {
             'net': net.state_dict(),
+            'optimizer': optimizer.state_dict(),
+            'scheduler': scheduler.state_dict(),
             'acc': acc,
             'epoch': epoch,
         }
-        if not os.path.isdir('checkpoint'):
-            os.mkdir('checkpoint')
-        torch.save(state, './checkpoint/ckpt.pth')
+        if not os.path.isdir(args.cifar_ckpt_dir):
+            os.mkdir(args.cifar_ckpt_dir)
+        ckpt_path = os.path.join(args.cifar_ckpt_dir, f'{args.model_name}.pth')
+        torch.save(state, ckpt_path)
         best_acc = acc
     return acc
 

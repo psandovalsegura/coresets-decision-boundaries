@@ -11,6 +11,7 @@ import math
 import torch.nn as nn
 import torch.nn.init as init
 
+from models import *
 
 def get_mean_and_std(dataset):
     '''Compute the mean and std value of dataset.'''
@@ -41,9 +42,9 @@ def init_params(net):
             if m.bias:
                 init.constant(m.bias, 0)
 
-
-_, term_width = os.popen('stty size', 'r').read().split()
-term_width = int(term_width)
+# slurm jobs do not have stty size
+# _, term_width = os.popen('stty size', 'r').read().split()
+term_width = int(90)
 
 TOTAL_BAR_LENGTH = 65.
 last_time = time.time()
@@ -122,3 +123,29 @@ def format_time(seconds):
     if f == '':
         f = '0ms'
     return f
+
+def model_picker(model_name):
+    if model_name == 'vgg19':
+        net = VGG('VGG19')
+    elif model_name == 'resnet18':
+        net = ResNet18()
+    elif model_name == 'resnet50':
+        net = ResNet50()
+    elif model_name == 'googlenet':
+        net = GoogLeNet()
+    else:
+        raise NotImplementedError(f'Model {model_name} is not implemented.')
+    # net = PreActResNet18()
+    # net = GoogLeNet()
+    # net = DenseNet121()
+    # net = ResNeXt29_2x64d()
+    # net = MobileNet()
+    # net = MobileNetV2()
+    # net = DPN92()
+    # net = ShuffleNetG2()
+    # net = SENet18()
+    # net = ShuffleNetV2(1)
+    # net = EfficientNetB0()
+    # net = RegNetX_200MF()
+    # net = SimpleDLA()
+    return net
