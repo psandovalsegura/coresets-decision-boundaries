@@ -26,16 +26,13 @@ parser.add_argument('--cifar_dir', default='./data',
 parser.add_argument('--workers', default=1, type=int, help='number of data loading workers')
 parser.add_argument('--batch_size', default=128, type=int, help='input batch size')
 parser.add_argument('--runs', default=1, type=int, help='number of runs')
-parser.add_argument('--random_split', action='store_true',
-                    help='whether to train on a random split of the training set')
-parser.add_argument('--split_fraction', type=float, default=0.5,
-                    help='the fraction of samples for the random split')
 parser.add_argument('--no_progress_bar', action='store_true', help='whether to show progress bar')
 parser.add_argument('--no_download_data', action='store_true', help='whether to download data')
 
 # Adversarial attack settings
 parser.add_argument('--adversarial', action='store_true', help='Whether or not to perform adversarial attack during testing')
-parser.add_argument('--attack_iters', type=int, default=200, help='Number of iterations for the attack')
+parser.add_argument('--attack_iters', type=int, default=20, help='Number of iterations for the attack')
+parser.add_argument('--epsilon', type=float, default=8., help='Epsilon (default=8) for the attack. Script will divide by 255.')
 args = parser.parse_args()
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -83,8 +80,10 @@ def test(epoch, adversarial=False, epsilon=(8./255), attack_iters=10):
     global best_acc
     net.eval()
     test_loss = 0
+
     attack_success = 0
-    correct = 0
+    standard_correct = 0
+    coreset_correct = 0
     total = 0
 
     # Create coreset loader
@@ -96,7 +95,7 @@ def test(epoch, adversarial=False, epsilon=(8./255), attack_iters=10):
         # no bounds since adversarial examples are in normalized range
         fmodel = fb.models.PyTorchModel(net, bounds=(-np.inf, np.inf), preprocessing=None) 
         attack = fb.attacks.LinfPGD(abs_stepsize=(epsilon / attack_iters * 2.5), steps=attack_iters, random_start=False)
-
+        print(f'LinfPGD Attack Parameters: epsilon={epsilon} iters={attack_iters}')
     
     for batch_idx, (inputs, targets) in enumerate(testloader):
         inputs, targets = inputs.to(device), targets.to(device)
@@ -112,26 +111,28 @@ def test(epoch, adversarial=False, epsilon=(8./255), attack_iters=10):
             test_loss += loss.item()
             _, predicted = outputs.max(1)
             total += targets.size(0)            
-            correct += predicted.eq(targets).sum().item()
+            standard_correct += predicted.eq(targets).sum().item()
 
             # Compute coreset accuracy
             embedded = net(inputs, last_layer=True)
             outputs_nn = nnc.classify(embedded)
-            coreset_acc = (outputs_nn.eq(targets).sum().item() / targets.size(0) * 100)
-            print(f'Coreset Accuracy: {coreset_acc:0.2f} %')
+            coreset_correct += outputs_nn.eq(targets).sum().item()
 
         if not args.no_progress_bar:
             from utils import progress_bar
             progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-                        % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
+                        % (test_loss/(batch_idx+1), 100.*standard_correct/total, standard_correct, total))
 
-    acc = 100.*correct/total
+    print('\n')
+    acc = 100.*standard_correct/total
     print(f'[Epoch {epoch}] Test Accuracy: {acc:.2f} %')
+    coreset_acc = 100.*coreset_correct/total
+    print(f'[Epoch {epoch}] Coreset Accuracy: {coreset_acc:.2f} %')
     if adversarial:
         attack_success_rate = 100.*attack_success/total
         print(f'[Epoch {epoch}] Attack Success: {attack_success_rate:.2f} %')
     return acc
 
 
-acc = test(0, adversarial=args.adversarial, attack_iters=args.attack_iters)
+acc = test(0, adversarial=args.adversarial, epsilon=(args.epsilon / 255), attack_iters=args.attack_iters)
 

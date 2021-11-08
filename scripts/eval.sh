@@ -1,0 +1,1 @@
+python eval.py --adversarial --attack_iters 5 --epsilon 8 --no_download_data --cifar_dir /vulcanscratch/psando/cifar-10

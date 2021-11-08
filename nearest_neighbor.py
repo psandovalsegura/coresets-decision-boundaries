@@ -9,27 +9,12 @@ def create_cifar_coreset_tensor(model, trainset):
     coresetloader = torch.utils.data.DataLoader(
         coreset_raw, batch_size=len(fcnn_sel), shuffle=False, num_workers=1)
 
-    coreset_matrix = []
-    coreset_target = []
-
     model.eval()
-
-    inputs, targets = iter(coresetloader).next()
-    inputs, targets = inputs.cuda(), targets.cuda()
-    coreset_matrix = model(inputs, last_layer=True)
-    coreset_target = targets
-    
-    # with torch.no_grad():
-    #     for batch_idx, (inputs, targets) in enumerate(coresetloader):
-
-    #         inputs, targets = inputs.cuda(), targets.cuda()
-    #         outputs = model(inputs, last_layer=True)
-    #         x = outputs[0]
-
-    #         coreset_matrix.append(x)
-    #         coreset_target.append(targets[0])
-
-    # coreset_matrix = torch.stack(coreset_matrix)
+    with torch.no_grad():
+        inputs, targets = iter(coresetloader).next()
+        inputs, targets = inputs.cuda(), targets.cuda()
+        coreset_matrix = model(inputs, last_layer=True)
+        coreset_target = targets
 
     return coreset_matrix, coreset_target
 
